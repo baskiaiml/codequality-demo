@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jenkins Integration – Code Quality & Coverage</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.6; color: #222; }
+    h1 { font-size: 1.75rem; border-bottom: 2px solid #1a73e8; padding-bottom: 0.5rem; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; color: #1a73e8; }
+    h3 { font-size: 1.1rem; margin-top: 1.25rem; }
+    code, pre { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; }
+    pre { padding: 1rem; overflow-x: auto; white-space: pre; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: #f0f7ff; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { padding: 0.25rem 0; }
+    .checklist li::before { content: "☐ "; }
+    ul, ol { padding-left: 1.5rem; }
+    li { margin: 0.35rem 0; }
+    .note { background: #fef9e7; border-left: 4px solid #f1c40f; padding: 0.75rem 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Step-by-Step Jenkins Integration</h1>
+  <p>Code Quality (SpotBugs) and Code Coverage (JaCoCo) for Java Maven projects.</p>
+
+  <h2>Part A: Jenkins Setup</h2>
+
+  <h3>Step 1: Install Required Plugins</h3>
+  <ol>
+    <li>Open Jenkins in your browser.</li>
+    <li>Go to <strong>Manage Jenkins</strong> → <strong>Plugins</strong> (or <strong>Manage Jenkins</strong> → <strong>System</strong> → <strong>Plugins</strong>).</li>
+    <li>Open the <strong>Available</strong> tab.</li>
+    <li>Search and install:
+      <ul>
+        <li><strong>JaCoCo</strong></li>
+        <li><strong>Warnings Next Generation</strong> (Warnings NG / Static Analysis Utilities)</li>
+      </ul>
+    </li>
+    <li>If prompted, restart Jenkins (<strong>Manage Jenkins</strong> → <strong>Restart</strong>).</li>
+    <li>After restart, go to <strong>Manage Jenkins</strong> → <strong>Plugins</strong> → <strong>Installed</strong> and confirm both plugins are listed.</li>
+  </ol>
+
+  <h3>Step 2: Global Tool Configuration (Java, Git, Maven)</h3>
+  <p>Go to <strong>Manage Jenkins</strong> → <strong>Tools</strong> (or <strong>Global Tool Configuration</strong>).</p>
+
+  <h4>JDK (Java)</h4>
+  <ol>
+    <li>Under <strong>JDK</strong>, click <strong>Add JDK</strong>.</li>
+    <li>Set <strong>Name</strong> to e.g. <code>JDK-17</code>.</li>
+    <li>Either enable <strong>Install automatically</strong> and choose a Java 17 version, or set the path to an existing JDK 17 installation.</li>
+  </ol>
+
+  <h4>Git</h4>
+  <ol>
+    <li>Under <strong>Git</strong>, click <strong>Add Git</strong>.</li>
+    <li>Set <strong>Name</strong> to e.g. <code>Default</code> (or leave default).</li>
+    <li>Either enable <strong>Install automatically</strong> or set the path to <code>git</code> on the agent.</li>
+  </ol>
+
+  <h4>Maven</h4>
+  <ol>
+    <li>Under <strong>Maven</strong>, click <strong>Add Maven</strong>.</li>
+    <li>Set <strong>Name</strong> to e.g. <code>Maven-3.9</code>.</li>
+    <li>Either enable <strong>Install automatically</strong> and choose a version (e.g. 3.9.x), or set the path to an existing Maven installation.</li>
+  </ol>
+  <p>Click <strong>Save</strong>.</p>
+
+  <h3>Step 3: Create the Pipeline Job</h3>
+  <ol>
+    <li>From the Jenkins dashboard, click <strong>New Item</strong>.</li>
+    <li>Enter a name (e.g. <code>codequality-demo</code>).</li>
+    <li>Select <strong>Pipeline</strong>.</li>
+    <li>Click <strong>OK</strong>.</li>
+  </ol>
+
+  <h3>Step 4: Define the Pipeline</h3>
+
+  <h4>Option A – Pipeline script from SCM (recommended)</h4>
+  <ol>
+    <li>In the job configuration, under <strong>Pipeline</strong>:
+      <ul>
+        <li><strong>Definition:</strong> <em>Pipeline script from SCM</em>.</li>
+        <li><strong>SCM:</strong> Git.</li>
+        <li><strong>Repository URL:</strong> your repo URL (e.g. <code>https://github.com/your-org/codequality-demo.git</code>).</li>
+        <li><strong>Credentials:</strong> add if the repo is private.</li>
+        <li><strong>Branch:</strong> <code>*/main</code> or <code>*/master</code>.</li>
+        <li><strong>Script Path:</strong> <code>Jenkinsfile</code>.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+  <p>Add a file named <strong>Jenkinsfile</strong> in the root of your repository with the content below (adjust the tool names if you used different ones).</p>
+
+  <h4>Option B – Pipeline script (paste in Jenkins)</h4>
+  <ol>
+    <li>Under <strong>Pipeline</strong>, set <strong>Definition</strong> to <em>Pipeline script</em>.</li>
+    <li>Paste the same script into the <strong>Script</strong> text area.</li>
+    <li>Ensure the job still has a way to get the source (e.g. a previous SCM step or “Pipeline script from SCM” for another branch).</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h4>Jenkinsfile content</h4>
+  <p>Use this version so the pipeline runs on both <strong>Linux/Unix</strong> and <strong>Windows</strong> agents (Windows does not have <code>sh</code>; it uses <code>bat</code>).</p>
+  <pre><code>// Cross-platform: uses 'sh' on Linux/Unix agents and 'bat' on Windows agents
+pipeline {
+  agent any
+  tools {
+    jdk 'JDK-17'
+    maven 'Maven-3.9'
+  }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+    timestamps()
+  }
+  stages {
+    stage('Build & Test') {
+      steps {
+        script {
+          if (isUnix()) {
+            sh 'mvn clean verify'
+          } else {
+            bat 'mvn clean verify'
+          }
+        }
+      }
+    }
+    stage('Publish JaCoCo') {
+      steps {
+        jacoco(
+          execPattern: 'target/jacoco.exec',
+          skipCopyOfSrcFiles: true
+        )
+      }
+    }
+    stage('Publish SpotBugs') {
+      steps {
+        recordIssues(
+          tools: [spotBugs(pattern: 'target/spotbugsXml.xml')]
+        )
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'target/site/jacoco/**/*,target/spotbugsXml.xml', allowEmptyArchive: true
+    }
+  }
+}</code></pre>
+  <p>Use the same tool names as in Global Tool Configuration (<code>JDK-17</code>, <code>Maven-3.9</code>). If you did not add a JDK, remove the <code>jdk 'JDK-17'</code> line.</p>
+  <p class="note"><strong>Windows:</strong> If your Jenkins agent is Windows, the pipeline must use <code>bat</code> instead of <code>sh</code> for shell steps. The script above uses <code>isUnix()</code> so it works on both. If you only use Windows, you can replace the Build & Test step with <code>bat 'mvn clean verify'</code>.</p>
+
+  <h3>Step 5: Run the Job and Verify</h3>
+  <ol>
+    <li>Open the job and click <strong>Build Now</strong>.</li>
+    <li>Wait for the build to finish. In the build’s <strong>Stages</strong> you should see:
+      <ul>
+        <li><strong>Build & Test</strong> – runs <code>mvn clean verify</code>.</li>
+        <li><strong>Publish JaCoCo</strong> – records coverage.</li>
+        <li><strong>Publish SpotBugs</strong> – records static analysis.</li>
+      </ul>
+    </li>
+    <li>On the <strong>build page</strong> (click the build number):
+      <ul>
+        <li>You should see <strong>Coverage</strong> (or a coverage trend) from JaCoCo.</li>
+        <li>You should see <strong>Issues</strong> / <strong>Warnings</strong> from SpotBugs.</li>
+        <li>Under <strong>Build Artifacts</strong>, open the archived JaCoCo HTML (e.g. <code>index.html</code> under <code>target/site/jacoco</code>) for line-level drill-down.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Part B: Checklist</h2>
+  <table>
+    <thead>
+      <tr><th>Step</th><th>Action</th><th>Done</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Install <strong>JaCoCo</strong> and <strong>Warnings Next Generation</strong> plugins</td><td>☐</td></tr>
+      <tr><td>2</td><td>Add <strong>JDK</strong> (e.g. <code>JDK-17</code>) under Tools</td><td>☐</td></tr>
+      <tr><td>3</td><td>Add <strong>Git</strong> under Tools</td><td>☐</td></tr>
+      <tr><td>4</td><td>Add <strong>Maven</strong> (e.g. <code>Maven-3.9</code>) under Tools</td><td>☐</td></tr>
+      <tr><td>5</td><td>Create a <strong>Pipeline</strong> job</td><td>☐</td></tr>
+      <tr><td>6</td><td>Set “Pipeline script from SCM” and add <strong>Jenkinsfile</strong> in repo (or paste script)</td><td>☐</td></tr>
+      <tr><td>7</td><td>Run <strong>Build Now</strong> and verify Coverage + Issues + artifacts</td><td>☐</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Part C: Report Paths (this project)</h2>
+  <table>
+    <thead>
+      <tr><th>Report</th><th>Path</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>JaCoCo exec</td><td><code>target/jacoco.exec</code></td></tr>
+      <tr><td>JaCoCo HTML</td><td><code>target/site/jacoco/index.html</code></td></tr>
+      <tr><td>SpotBugs XML</td><td><code>target/spotbugsXml.xml</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Part D: Troubleshooting</h2>
+  <ul>
+    <li><strong>“Maven” or “JDK” not found:</strong> The names in <code>tools { ... }</code> must match exactly the names in <strong>Manage Jenkins</strong> → <strong>Tools</strong>.</li>
+    <li><strong>Cannot run program "sh" / The system cannot find the file specified (Windows):</strong> The agent is Windows; there is no <code>sh</code>. Use the cross-platform Jenkinsfile above (with <code>isUnix() ? sh(...) : bat(...)</code>), or replace <code>sh 'mvn clean verify'</code> with <code>bat 'mvn clean verify'</code> in the Build & Test stage.</li>
+    <li><strong>No coverage / no issues:</strong> Ensure the <strong>Build & Test</strong> stage runs first and succeeds (<code>mvn clean verify</code>). Check that the paths above exist after the build.</li>
+    <li><strong>Repo not found:</strong> Check repository URL, credentials, and branch. If using “Pipeline script” only, add a <code>checkout scm</code> or <code>git</code> step so the project is checked out.</li>
+    <li><strong>SpotBugs HTML not archived:</strong> If the report is at <code>target/spotbugs.html</code>, add it to the archive list: <code>target/site/jacoco/**/*,target/spotbugsXml.xml,target/spotbugs.html</code>.</li>
+  </ul>
+
+  <p class="note"><strong>Note:</strong> This project uses Java 17, Maven, JaCoCo, and SpotBugs. The Jenkinsfile assumes tool names <code>JDK-17</code> and <code>Maven-3.9</code>; change them to match your Jenkins configuration.</p>
+
+</body>
+</html>
