@@ -14,9 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class OrderService {
 
-    // Deliberate: unused field - SpotBugs UUF_UNUSED_FIELD
-    private String unusedInternalCache = "never-read";
-
     private final Map<Long, Order> orders = new ConcurrentHashMap<>();
     private long nextId = 1L;
 
@@ -33,17 +30,14 @@ public class OrderService {
         return orders.get(id);
     }
 
-    /**
-     * Deliberate: possible NPE when order is null - SpotBugs NP_NULL_ON_SOME_PATH
-     */
     public BigDecimal getOrderTotal(Long id) {
         Order order = orders.get(id);
+        if (order == null) {
+            return BigDecimal.ZERO;
+        }
         return order.getTotalAmount();
     }
 
-    /**
-     * Deliberate: empty catch block - SpotBugs DE_MIGHT_IGNORE
-     */
     public boolean safeCancelOrder(Long id) {
         try {
             Order order = orders.get(id);
@@ -53,9 +47,8 @@ public class OrderService {
             }
             return false;
         } catch (Exception e) {
-            // Intentionally empty - SpotBugs will report this
+            return false;
         }
-        return false;
     }
 
     /**

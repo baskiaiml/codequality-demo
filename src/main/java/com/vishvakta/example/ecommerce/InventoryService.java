@@ -13,9 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class InventoryService {
 
-    // Deliberate: unused field - UUF_UNUSED_FIELD
-    private static final String UNUSED_PREFIX = "INV-";
-
     private final Map<Long, InventoryItem> items = new ConcurrentHashMap<>();
     private final Map<String, Long> skuToId = new ConcurrentHashMap<>();
     private long nextId = 1L;
@@ -50,34 +47,22 @@ public class InventoryService {
         return item.needsReorder();
     }
 
-    /**
-     * Deliberate: empty catch block - DE_MIGHT_IGNORE / EmptyCatchBlock.
-     */
     public int adjustStock(Long id, int delta) {
-        try {
-            InventoryItem item = items.get(id);
-            if (item != null) {
-                int newQty = Math.max(0, item.getQuantityInStock() + delta);
-                item.setQuantityInStock(newQty);
-                return newQty;
-            }
-            return -1;
-        } catch (Exception e) {
+        InventoryItem item = items.get(id);
+        if (item != null) {
+            int newQty = Math.max(0, item.getQuantityInStock() + delta);
+            item.setQuantityInStock(newQty);
+            return newQty;
         }
         return -1;
     }
 
-    /**
-     * Deliberate: dead store - DLS_DEAD_STORE.
-     */
     public String getItemDescription(Long id) {
         InventoryItem item = items.get(id);
         if (item == null) {
             return "NOT_FOUND";
         }
-        String desc = item.getSku() + " - " + item.getName();
-        String unused = desc;
-        return desc;
+        return item.getSku() + " - " + item.getName();
     }
 
     /**

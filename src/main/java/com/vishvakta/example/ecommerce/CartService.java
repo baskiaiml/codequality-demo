@@ -32,26 +32,19 @@ public class CartService {
         return carts.get(id);
     }
 
-    /**
-     * Deliberate: possible NPE - NP_NULL_ON_SOME_PATH when cart is missing.
-     */
     public int getTotalItemCount(Long cartId) {
         Cart cart = carts.get(cartId);
+        if (cart == null) {
+            return 0;
+        }
         return cart.getTotalItemCount();
     }
 
-    /**
-     * Deliberate: empty catch block - DE_MIGHT_IGNORE / EmptyCatchBlock.
-     */
     public boolean addItem(Long cartId, String productId, int quantity) {
-        try {
-            Cart cart = carts.get(cartId);
-            if (cart != null && productId != null && quantity > 0) {
-                cart.addProduct(productId, quantity);
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
+        Cart cart = carts.get(cartId);
+        if (cart != null && productId != null && quantity > 0) {
+            cart.addProduct(productId, quantity);
+            return true;
         }
         return false;
     }
@@ -65,17 +58,12 @@ public class CartService {
         return true;
     }
 
-    /**
-     * Deliberate: dead store - DLS_DEAD_STORE.
-     */
     public int getLineItemCount(Long cartId) {
         Cart cart = carts.get(cartId);
         if (cart == null) {
             return -1;
         }
-        int count = cart.getProductQuantities().size();
-        int unused = count;
-        return count;
+        return cart.getProductQuantities().size();
     }
 
     /**
